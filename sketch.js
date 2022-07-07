@@ -15,8 +15,12 @@ let bias;
 let path;
 // Current state of game
 let state;
+// Option to reverse direction of drill
+let reverse;
 // The turning radius to be computed
 let turnCircleRadius;
+// Track time
+let mytime;
 
 // Groundcolor is used to determine win or lose state
 const groundColor = [11, 106, 136];
@@ -44,6 +48,7 @@ function startDrill() {
   path = [];
   bias = 1;
   state = 'PAUSED';
+  reverse = 'FALSE';
   startButton.html('start');
 
   // Draw a new scene
@@ -132,16 +137,31 @@ function setup() {
     bias *= -1;
   });
 
+   // Handle the toggle bias button
+  createButton('reverse').mousePressed(function () {
+    if (reverse == 'FALSE') {
+      reverse = 'TRUE';
+      this.html('reverse');
+    } else if (reverse == 'TRUE') {
+      reverse = 'FALSE';
+      this.html('forward');
+    }
+  });
+    
   // A slider for adding some randomness (in %)
-  createSpan('randomness: ');
+  div = createDiv();
+  div.position(150, 500);
+  span = createSpan('randomness: ');
+  span.parent(div);
   randomSlider = createSlider(0, 100, 0, 0.5);
-
+  randomSlider.parent(div);
   // A button for previewing aiming bounds
   aimingCheckbox = createCheckbox('Steering limits', false);
-
+  aimingCheckbox.parent(div);
   // Draw the scene
   hddScene = createGraphics(width, height);
   startDrill();
+  mytime = millis();
 }
 
 // One drill step
@@ -161,7 +181,12 @@ function drill() {
 
   // Save previous position
   path.push(pos.copy());
+ 
+  if (reverse == 'TRUE') {
+    pos.sub(dir);
+  } else {
   pos.add(dir);
+  }
 
   // Get pixel color under drill
   let c = hddScene.get(pos.x, pos.y);
@@ -271,6 +296,10 @@ function draw() {
     text('YOU WIN', width / 2, height / 2);
     textSize(24);
     // Starting idea for a score
-    text(`pipe length: ${path.length}`, width / 2, height / 2 + 96);
+    //time = millis();
+    let score = int(0.5*mytime + 0.5* path.length);
+    text(`Score: ${score}`, width / 2, height / 2 + 96);
+    // text(`pipe length: ${path.length}`, width / 2, height / 2 + 96);
+    
   }
 }
