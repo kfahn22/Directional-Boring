@@ -386,17 +386,19 @@ function draw() {
   strokeWeight(4);
   circle(10, groundLevel, 4);
 
-  if (aimingCheckbox.checked()) {
+  if (aimingCheckbox.checked() && reverse == 'FALSE') {
     // Start of the aiming arcs
     push();
     translate(pos.x, pos.y);
-    rotate(dir.heading());
+    
+   rotate(dir.heading());
 
     // Draw the aiming lines
     stroke(125);
     strokeWeight(1);
     noFill();
     const maxAimAngle = QUARTER_PI * 1.2;
+    // if (reverse == 'FALSE') {
     arc(
       0,
       -turnCircleRadius,
@@ -415,7 +417,8 @@ function draw() {
       -HALF_PI + maxAimAngle,
       OPEN
     );
-    pop();
+    pop();  
+ 
   }
 
   // Draw the drill bit
