@@ -13,12 +13,14 @@
 body {
   font-family: 'Roboto Mono', monospace;
   font-size: 0.9rem;
+  color: #fff;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr; 
   grid-template-rows: 450px 1fr 3rem; 
   align-items: center;
   justify-items: center;
   margin: 0 calc(50% - 300px);
+  background-color: #595959;
 }
 
 /* main only contains canvas */
