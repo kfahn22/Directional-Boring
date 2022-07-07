@@ -17,8 +17,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr; 
   grid-template-rows: 450px 1fr 3rem; 
-  align-items: center;
-  justify-items: center;
+  align-items: start;
   margin: 0 calc(50% - 300px);
   background-color: #595959;
 }
@@ -34,21 +33,6 @@ canvas {
   display: block;
 }
 
-/* The check box */
-
-body>div:not([class]) {
-  grid-row-start: 3;
-  grid-row-end: 4;
-  grid-column-start: 1;
-  grid-column-end: 6;
-
-}
-
-input[type='checkbox'] {
-  margin-right: 0.5rem;
-}
-
-/* Button styling */
 
 button {
   font-family: inherit;
@@ -56,11 +40,17 @@ button {
   width: 9em;
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
-
+  align-items: start;
 }
 
-/* The "randomness" span */
+.flex-container {
+  display: flex;
+  justify-content: left;
+}
 
-body>span:not([class]) {
-  justify-self: end;
+.controls
+  { 
+  width: 20vw;
+  align-items: start;
+  grid-row-start: 5; 
 }
