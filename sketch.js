@@ -15,6 +15,15 @@ let bias;
 let path;
 // Current state of game
 let state;
+// Option to reverse direction of drill
+let reverse;
+// Track time
+let mytime;
+// level of difficulty
+//const level = 5;
+// Track best (lowest) score
+let score;
+let bestScore = 2000;
 // The turning radius to be computed
 let turnCircleRadius;
 let boulders;
@@ -27,7 +36,10 @@ const riverColor = [0, 0, 255];
 const backgroundColor = [45, 197, 244];
 const boundaryColor = [0, 0, 0];
 // Position of the goal square box (relative to ground)
-const goal = { x: 540, w: 20 };
+const goal = {
+  x: 540,
+  w: 20
+};
 const goalColor = [252, 238, 33];
 const dirtLayers = 7;
 
@@ -39,10 +51,15 @@ let hddScene;
 let fogOfUncertinty;
 let reflections;
 
-// Button to start
+// Game controls
 let startButton;
+let toggleButton;
+let reverseButton;
 let aimingCheckbox;
 let fogCheckbox;
+let buttonDiv;
+let controlDiv;
+let levelSlider;
 
 function setGradient(image, x, y, w, h, c1, c2, axis) {
   image.noFill();
@@ -66,7 +83,7 @@ function setGradient(image, x, y, w, h, c1, c2, axis) {
   }
 }
 
-function drawRiver(hddScene, riverColor){
+function drawRiver(hddScene, riverColor) {
   hddScene.noStroke();
   // hddScene.rectMode(CORNER);
   // hddScene.fill(groundColor);
@@ -75,7 +92,7 @@ function drawRiver(hddScene, riverColor){
   hddScene.arc(width / 2, groundLevel, width / 2, width / 4, 0, PI);
 }
 
-function createHddScene(){
+function createHddScene() {
   hddScene = createGraphics(width, height);
   // Draw a new scene
   hddScene.background(backgroundColor);
@@ -119,8 +136,8 @@ function createHddScene(){
   hddScene.pop();
 
   drawRiver(hddScene, riverColor);
-
-  for (let i = 0; i < 10; i++) {
+  const level = levelSlider.value();
+  for (let i = 0; i < level; i++) {
     let r = random(8, 36);
     let x = random(0, width);
     let y = random(groundLevel + 50, height - 50);
@@ -135,24 +152,24 @@ function createHddScene(){
   // Add the goal
   hddScene.fill(goalColor);
   hddScene.rect(goal.x - 2, groundLevel - goal.w - 2, goal.w + 4, goal.w + 4);
-  hddScene.triangle(goal.x - 6, groundLevel - goal.w - 2, 
-                    goal.x + goal.w + 6, groundLevel - goal.w - 2,
-                    goal.x + goal.w / 2, groundLevel - goal.w * 1.8);
+  hddScene.triangle(goal.x - 6, groundLevel - goal.w - 2,
+    goal.x + goal.w + 6, groundLevel - goal.w - 2,
+    goal.x + goal.w / 2, groundLevel - goal.w * 1.8);
 }
 
-function createFogOfUncertainty(){
+function createFogOfUncertainty() {
   fogOfUncertinty = createGraphics(width, height);
   // Draw a new scene
   fogOfUncertinty.background(0, 0);
-  setGradient(fogOfUncertinty, 0, groundLevel, width, goal.w*2, color(255), color(0), 1);
+  setGradient(fogOfUncertinty, 0, groundLevel, width, goal.w * 2, color(255), color(0), 1);
   fogOfUncertinty.fill(0);
   fogOfUncertinty.noStroke();
-  fogOfUncertinty.rect(0, groundLevel + goal.w*2, width, height);
+  fogOfUncertinty.rect(0, groundLevel + goal.w * 2, width, height);
 
   drawRiver(fogOfUncertinty, color(255));
 }
 
-function createReflections(){
+function createReflections() {
   reflections = createGraphics(width, height);
   reflections.background(0, 0);
   drawReflection(reflections);
@@ -166,12 +183,13 @@ function startDrill() {
   boulders = [];
   bias = 1;
   state = 'PAUSED';
+  reverse = 'FALSE';
   startButton.html('start');
 
   // Related circle size
   const turnCircleLen = (PI * 2) / angle;
   turnCircleRadius = turnCircleLen / PI / 2;
-  
+
 
   createHddScene();
   createFogOfUncertainty();
@@ -202,17 +220,45 @@ function setup() {
     bias *= -1;
   });
 
-  // A slider for adding some randomness (in %)
-  createSpan('randomness: ').id('slider-label');
-  randomSlider = createSlider(0, 100, 50, 0.5);
+  // Handle the toggle bias button
+  reverseButton = createButton('reverse').mousePressed(function () {
+    if (reverse == 'FALSE') {
+      reverse = 'TRUE';
+      this.html('forward');
+    } else if (reverse == 'TRUE') {
+      reverse = 'FALSE';
+      this.html('reverse');
+    }
+  });
 
-  // A button for previewing aiming bounds
+  // Add checkboxes for previewing aiming bounds and adding fog of uncertainty
   aimingCheckbox = createCheckbox('Steering limits', false).id("steer-lim-box");
   fogCheckbox = createCheckbox('Fog of uncertainty', true).id("fog-box");
 
-  // Draw the scene
+  let div1 = createDiv().id('random');
+  let div2 = createDiv().id('level');
+  // A slider for adding some randomness (in %)
+  let span1 = createSpan('randomness: ').id('slider-label');
+  randomSlider = createSlider(0, 100, 50, 0.5);
+  randomSlider.parent(div1);
+  span1.parent(div1);
+  // A slider to add difficulty level based on number of boulders
+  let span2 = createSpan('level: ').id('level-label');
+  levelSlider = createSlider(1, 10, 5, 1);
+  levelSlider.parent(div2);
+  span2.parent(div2);
+  level = getItem("level");
+  if (level !== null) {
+    levelSlider.value(level);
+  }
+  levelSlider.changed(storeLevel);
 
+  // Get previous best score
+  bestScore = getItem("bestScore");
+
+  // Draw the scene
   startDrill();
+  mytime = millis();
 }
 
 // One drill step
@@ -227,12 +273,20 @@ function drill() {
 
   // Save previous position
   path.push(pos.copy());
+
+  // Allow player to reverse direction
+  if (reverse == 'TRUE') {
+    pos.sub(dir);
+  } else {
+    pos.add(dir);
+  }
+
   // Reduce uncertainty
   fogOfUncertinty.noStroke();
   fogOfUncertinty.fill(255);
-  fogOfUncertinty.circle(pos.x, pos.y, goal.w*2);
-  pos.add(dir);
-  if (pos.x < 0 || pos.x > width || pos.y > height){
+  fogOfUncertinty.circle(pos.x, pos.y, goal.w * 2);
+  //pos.add(dir);
+  if (pos.x < 0 || pos.x > width || pos.y > height) {
     state = 'LOSE';
     startButton.html('try again');
   }
@@ -260,12 +314,12 @@ function drill() {
   }
 }
 
-function drawReflection(reflectionImage){
+function drawReflection(reflectionImage) {
   const spacing = goal.w;
   const step = 1;
   const visualRad = 3;
   const errorPercent = 10;
-  for (let x = 0; x < width - spacing; x+=step){
+  for (let x = 0; x < width - spacing; x += step) {
     let minTravelDist = computeReflextionTimeSinglePoint(x, x + spacing);
     let distToObjWithNoize = (100 + random(-10, 10)) / 100. * minTravelDist / 2;
     let xMid = x + spacing / 2;
@@ -276,25 +330,25 @@ function drawReflection(reflectionImage){
   // drawRiver(reflectionImage);
 }
 
-function computeReflextionTimeSinglePoint(x0, x1){
+function computeReflextionTimeSinglePoint(x0, x1) {
   let minArrivalDist = height * 2;
   //const maxSteps = height * 2;
-  console.log('point '+ x0);
+  console.log('point ' + x0);
   for (let j = 0; j < boulders.length; j++) {
-    for (let i = 0; i < 360; i+= 10){
+    for (let i = 0; i < 360; i += 10) {
       // looping angles on the boulder
       let boulderDir = i * PI / 180;
       let boulderPoint = createVector(boulders[j][0], boulders[j][1]);
       boulderPoint.add(p5.Vector.fromAngle(boulderDir, boulders[j][2]));
-      if (boulderPoint.x > x1 || boulderPoint.x < x0){
+      if (boulderPoint.x > x1 || boulderPoint.x < x0) {
         continue;
       }
       let distDown = dist(x0, groundLevel, boulderPoint.x, boulderPoint.y);
       let distUp = dist(x1, groundLevel, boulderPoint.x, boulderPoint.y);
       let totalDist = distDown + distUp;
-      if (totalDist < minArrivalDist){
+      if (totalDist < minArrivalDist) {
         minArrivalDist = totalDist;
-        console.log('boulder '+ boulderPoint);
+        console.log('boulder ' + boulderPoint);
       }
     }
   }
@@ -317,12 +371,12 @@ function computeReflextionTimeSinglePoint(x0, x1){
 
 // Draw loop
 function draw() {
-  // Dril!
+  // Drill!
   if (state == 'DRILLING') drill();
 
   // Draw the scene
   image(hddScene, 0, 0);
-  if (!(state == "WIN" || state == "LOSE")  && fogCheckbox.checked()){
+  if (!(state == "WIN" || state == "LOSE") && fogCheckbox.checked()) {
     blendMode(MULTIPLY);
     image(fogOfUncertinty, 0, 0);
     blendMode(BLEND);
@@ -344,7 +398,7 @@ function draw() {
   strokeWeight(4);
   circle(10, groundLevel, 4);
 
-  if (aimingCheckbox.checked()) {
+  if (aimingCheckbox.checked() && reverse == "FALSE") {
     // Start of the aiming arcs
     push();
     translate(pos.x, pos.y);
@@ -381,7 +435,12 @@ function draw() {
   stroke(252, 238, 33);
   strokeWeight(8);
   translate(pos.x, pos.y);
-  rotate(dir.heading() + (PI / 6) * bias);
+  if (!reverse) {
+    rotate(dir.heading() + (PI / 6) * bias);
+  } else {
+    rotate(dir.heading(TWO_PI));
+  }
+  //rotate(dir.heading() + (PI / 6) * bias);
   line(0, 0, 10, 0);
   pop();
 
@@ -404,7 +463,28 @@ function draw() {
     textFont('courier-bold');
     text('YOU WIN', width / 2, height / 2);
     textSize(24);
+
     // Starting idea for a score
-    text(`pipe length: ${path.length}`, width / 2, height / 2 + 96);
+    score = int(0.5 * mytime + 0.5 * path.length);
+    if (score < bestScore) {
+      bestScore = updateBestScore(score);
+      text(`New best score: ${bestScore}`, width / 2, height / 2 + 96);
+    } else {
+      text(`Score: ${score}`, width / 2, height / 2 + 96);
+      // text(`pipe length: ${path.length}`, width / 2, height / 2 + 96);
+    }
   }
+}
+
+function updateBestScore(score) {
+  //let bestScore = getItem('bestScore');
+  if (score < bestScore) {
+    bestScore = score;
+  }
+  storeItem("bestScore", bestScore);
+}
+
+function storeLevel() {
+  let level = levelSlider.value();
+  storeItem("level", level);
 }
